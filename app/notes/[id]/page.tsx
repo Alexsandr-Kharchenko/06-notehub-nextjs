@@ -15,7 +15,7 @@ export default function NoteDetailsPage({ params }: Props) {
     <div style={{ padding: '20px' }}>
       <h1>Note Details</h1>
 
-      {/* Suspense для клієнтського компонента */}
+      {}
       <Suspense fallback={<p>Loading note...</p>}>
         <NoteDetailsClient noteId={id} />
       </Suspense>
