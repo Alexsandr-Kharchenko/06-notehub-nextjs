@@ -1,4 +1,6 @@
 'use client';
+
+import type { UseMutateFunction } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Note } from '@/app/types/note';
@@ -7,6 +9,8 @@ import styles from './NoteList.module.css';
 
 interface Props {
   notes: Note[];
+  removeNote: UseMutateFunction<Note, Error, string, unknown>;
+  isPending?: boolean;
 }
 
 export default function NoteList({ notes }: Props) {
@@ -15,9 +19,7 @@ export default function NoteList({ notes }: Props) {
   // Мутація для видалення нотатки
   const mutation = useMutation({
     mutationFn: (id: string) => deleteNote(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
   });
 
   if (!notes || notes.length === 0) {

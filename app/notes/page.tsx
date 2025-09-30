@@ -6,8 +6,8 @@ import Pagination from '@/app/components/Pagination/Pagination';
 import NoteList from '@/app/components/NoteList/NoteList';
 import Modal from '@/app/components/Modal/Modal';
 import NoteForm from '@/app/components/NoteForm/NoteForm';
-import { useQuery } from '@tanstack/react-query';
-import { fetchNotes } from '@/app/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchNotes, deleteNote } from '@/app/lib/api';
 import type { Note } from '@/app/types/note';
 import noteDetailsStyles from './NoteDetails.module.css';
 import notesPageStyles from './NotesPage.module.css';
@@ -17,6 +17,9 @@ export default function NotesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const queryClient = useQueryClient();
+
+  // 📄 Отримання нотаток
   const {
     data: notes,
     isLoading,
@@ -26,9 +29,21 @@ export default function NotesPage() {
     queryFn: fetchNotes,
   });
 
+  // Мутація для видалення нотатки
+  const mutation = useMutation({
+    mutationFn: (id: string) => deleteNote(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
+  });
+
+  // 🔹 Функція видалення
+  const removeNote = mutation.mutate;
+
+  // 🔹 Перевірка стану мутації
+  const isDeleting = mutation.isPending;
+
   if (isLoading) return <p>Loading…</p>;
   if (error) return <p>Помилка завантаження</p>;
-  if (!notes) return <p>Нотаток немає</p>;
+  if (!notes || notes.length === 0) return <p>Нотаток немає</p>;
 
   // 🔎 Фільтрація по пошуку
   const filteredNotes = notes.filter(note =>
@@ -56,8 +71,12 @@ export default function NotesPage() {
         + Add Note
       </button>
 
-      {/* 📋 Список нотаток */}
-      <NoteList notes={paginatedNotes} />
+      {/* 📋 Список нотаток з підтримкою видалення */}
+      <NoteList
+        notes={paginatedNotes}
+        removeNote={removeNote}
+        isPending={isDeleting}
+      />
 
       {/* 📄 Пагінація */}
       <Pagination
