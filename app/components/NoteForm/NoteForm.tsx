@@ -23,7 +23,6 @@ const validationSchema = Yup.object({
 export default function NoteForm({ onCancel }: NoteFormProps) {
   const queryClient = useQueryClient();
 
-  // ✅ mutationFn = createNote, payload = CreateNote
   const mutation = useMutation<Note, Error, CreateNote>({
     mutationFn: createNote,
     onSuccess: () => {
@@ -31,9 +30,7 @@ export default function NoteForm({ onCancel }: NoteFormProps) {
       queryClient.invalidateQueries({ queryKey: ['notes'] });
       onCancel();
     },
-    onError: () => {
-      toast.error('Failed to create note');
-    },
+    onError: () => toast.error('Failed to create note'),
   });
 
   return (
