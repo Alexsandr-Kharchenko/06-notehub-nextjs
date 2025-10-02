@@ -1,3 +1,3 @@
 export default function LoadingNote() {
-  return <p>Завантаження нотатки...</p>;
+  return <p>Loading, please wait...</p>;
 }
