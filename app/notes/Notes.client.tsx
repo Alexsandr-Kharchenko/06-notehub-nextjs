@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, HydrationBoundary } from '@tanstack/react-query';
-import { fetchNoteById } from '@/app/lib/api';
+import { fetchNoteById } from '@/lib/api';
 import { useParams } from 'next/navigation';
 import type { Note } from '@/app/types/note';
 import type { DehydratedState } from '@tanstack/react-query';
