@@ -2,7 +2,7 @@
 
 import type { UseMutateFunction } from '@tanstack/react-query';
 import Link from 'next/link';
-import type { Note } from '@/app/types/note';
+import type { Note } from '@/types/note';
 import styles from './NoteList.module.css';
 
 interface Props {

@@ -3,7 +3,7 @@
 import { useQuery, HydrationBoundary } from '@tanstack/react-query';
 import { fetchNoteById } from '@/lib/api';
 import { useParams } from 'next/navigation';
-import type { Note } from '@/app/types/note';
+import type { Note } from '@/types/note';
 import type { DehydratedState } from '@tanstack/react-query';
 import styles from './NoteDetails.module.css';
 
