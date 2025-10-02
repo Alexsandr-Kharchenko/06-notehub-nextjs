@@ -16,11 +16,20 @@ export default function Modal({ children, onClose }: ModalProps) {
     const root = document.getElementById('modal-root') || document.body;
     setModalRoot(root);
 
+    // Забороняємо прокрутку сторінки
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
     }
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+
+    return () => {
+      // Відновлюємо прокрутку при закритті модалки
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [onClose]);
 
   if (!modalRoot) return null;

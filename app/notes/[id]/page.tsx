@@ -1,24 +1,26 @@
-// app/notes/[id]/page.tsx
-import { Suspense } from 'react';
+import { dehydrate, QueryClient } from '@tanstack/react-query';
 import NoteDetailsClient from './NoteDetails.client';
+import { fetchNoteById } from '@/lib/api';
 
 interface Props {
-  params: {
-    id: string;
-  };
+  params: { id: string };
 }
 
-export default function NoteDetailsPage({ params }: Props) {
-  const { id } = params;
+export default async function NoteDetailsPage({ params }: Props) {
+  const queryClient = new QueryClient();
+
+  // Попереднє завантаження даних нотатки на сервері
+  await queryClient.prefetchQuery({
+    queryKey: ['note', params.id],
+    queryFn: () => fetchNoteById(params.id),
+  });
+
+  const dehydratedState = dehydrate(queryClient);
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>Note Details</h1>
-
-      {}
-      <Suspense fallback={<p>Loading note...</p>}>
-        <NoteDetailsClient noteId={id} />
-      </Suspense>
+      <NoteDetailsClient noteId={params.id} dehydratedState={dehydratedState} />
     </div>
   );
 }

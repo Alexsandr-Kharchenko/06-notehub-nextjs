@@ -1,17 +1,21 @@
 'use client';
 
-import type { UseMutateFunction } from '@tanstack/react-query';
+import { UseMutateFunction } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { Note } from '@/types/note';
 import styles from './NoteList.module.css';
 
-interface Props {
+interface NoteListProps {
   notes: Note[];
   removeNote: UseMutateFunction<Note, Error, string, unknown>;
   isPending?: boolean;
 }
 
-export default function NoteList({ notes, removeNote, isPending }: Props) {
+export default function NoteList({
+  notes,
+  removeNote,
+  isPending,
+}: NoteListProps) {
   if (!notes || notes.length === 0)
     return <p className={styles.empty}>No notes yet</p>;
 

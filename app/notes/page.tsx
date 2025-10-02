@@ -1,84 +1,24 @@
-'use client';
+import { Suspense } from 'react';
+import { QueryClient, dehydrate } from '@tanstack/react-query';
+import { fetchNotes } from '@/lib/api';
+import NotesClient from './Notes.client';
+import type { FetchNotesResponse } from '@/lib/api';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import SearchBox from '@/components/SearchBox/SearchBox';
-import Pagination from '@/components/Pagination/Pagination';
-import NoteList from '@/components/NoteList/NoteList';
-import Modal from '@/components/Modal/Modal';
-import NoteForm from '@/components/NoteForm/NoteForm';
-import { fetchNotes, deleteNote } from '@/lib/api';
-import type { Note } from '@/types/note';
-import noteDetailsStyles from './NoteDetails.module.css';
-import notesPageStyles from './NotesPage.module.css';
+// Серверний компонент сторінки
+export default async function NotesPage() {
+  const queryClient = new QueryClient();
 
-export default function NotesPage() {
-  const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const queryClient = useQueryClient();
-
-  const {
-    data: notes,
-    isLoading,
-    error,
-  } = useQuery<Note[]>({
+  // Попереднє завантаження нотаток на сервері
+  await queryClient.prefetchQuery<FetchNotesResponse>({
     queryKey: ['notes'],
     queryFn: fetchNotes,
   });
 
-  const mutation = useMutation({
-    mutationFn: (id: string) => deleteNote(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
-  });
-
-  const removeNote = mutation.mutate;
-  const isDeleting = mutation.isPending;
-
-  if (isLoading) return <p>Loading…</p>;
-  if (error) return <p>Error loading notes</p>;
-
-  const filteredNotes =
-    notes?.filter(note =>
-      note.title.toLowerCase().includes(search.toLowerCase())
-    ) || [];
-
-  const perPage = 5;
-  const pageCount = Math.ceil(filteredNotes.length / perPage);
-  const start = (currentPage - 1) * perPage;
-  const paginatedNotes = filteredNotes.slice(start, start + perPage);
+  const dehydratedState = dehydrate(queryClient);
 
   return (
-    <div className={noteDetailsStyles.container}>
-      <h1 className={noteDetailsStyles.title}>Your Notes</h1>
-
-      <SearchBox value={search} onChange={setSearch} />
-
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className={notesPageStyles.button}
-      >
-        + Add Note
-      </button>
-
-      <NoteList
-        notes={paginatedNotes}
-        removeNote={removeNote}
-        isPending={isDeleting}
-      />
-
-      <Pagination
-        pageCount={pageCount}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-      />
-
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm onCancel={() => setIsModalOpen(false)} />
-        </Modal>
-      )}
-    </div>
+    <Suspense fallback={<p>Loading notes…</p>}>
+      <NotesClient dehydratedState={dehydratedState} />
+    </Suspense>
   );
 }
