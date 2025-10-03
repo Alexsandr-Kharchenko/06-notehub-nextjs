@@ -16,6 +16,8 @@ export default function NotesClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Доданий стан для відстеження ID нотатки, що видаляється
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -27,11 +29,19 @@ export default function NotesClient() {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  // Запит нотаток з серверу з урахуванням пошуку і сторінки
+  // Створення чистого об'єкта параметрів для queryKey та queryFn
+  const queryParams = {
+    page: currentPage,
+    perPage: 12,
+    ...(searchQuery && { search: searchQuery }), // Додаємо search лише якщо він не порожній
+  };
+
+  // Запит нотаток з серверу
   const { data, isLoading, isError } = useQuery<FetchNotesResponse, Error>({
-    queryKey: ['notes', searchQuery, currentPage],
-    queryFn: () =>
-      fetchNotes({ search: searchQuery, page: currentPage, perPage: 12 }),
+    // queryKey тепер містить об'єкт параметрів
+    queryKey: ['notes', queryParams],
+    // queryFn використовує чисту функцію, передаючи їй об'єкт параметрів
+    queryFn: () => fetchNotes(queryParams),
     refetchOnWindowFocus: false,
   });
 
@@ -42,13 +52,30 @@ export default function NotesClient() {
     mutationFn: async (id: string) => {
       await deleteNote(id);
     },
+    onMutate: async (id: string) => {
+      // 1. Встановлюємо ID нотатки, що видаляється
+      setDeletingId(id);
+    },
     onSuccess: () => {
       toast.success('Note deleted');
+      // 2. Очищуємо ID
+      setDeletingId(null);
+
+      // 3. Оптимізована валідація кешу:
+      // Валідуємо лише базовий ключ 'notes'.
       queryClient.invalidateQueries({
-        queryKey: ['notes', searchQuery, currentPage],
+        queryKey: ['notes'],
       });
+
+      // 4. Логіка для переходу на попередню сторінку, якщо поточна стала порожньою
+      if (notes.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      }
     },
-    onError: () => toast.error('Failed to delete note'),
+    onError: () => {
+      toast.error('Failed to delete note');
+      setDeletingId(null); // Очищуємо ID навіть при помилці
+    },
   });
 
   const openModal = () => setIsModalOpen(true);
@@ -73,9 +100,10 @@ export default function NotesClient() {
         </button>
       </header>
 
-      {}
+      {/* Оновлені умови відображення */}
       {isLoading && <p>Loading, please wait...</p>}
       {isError && <p>Something went wrong.</p>}
+      {/* Показуємо "No notes found" лише коли завантаження завершено і помилок немає */}
       {!isLoading && !isError && notes.length === 0 && <p>No notes found</p>}
 
       {/* NoteList рендериться лише якщо є нотатки */}
@@ -83,7 +111,8 @@ export default function NotesClient() {
         <NoteList
           notes={notes}
           removeNote={deleteMutation.mutate}
-          isPending={deleteMutation.isPending}
+          // Передаємо ID нотатки, що видаляється, замість isPending
+          isDeletingId={deletingId}
         />
       )}
 

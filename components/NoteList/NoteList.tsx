@@ -6,13 +6,14 @@ import css from './NoteList.module.css';
 
 interface NoteListProps {
   notes: Note[];
-
+  // Змінили тип для асинхронної функції
   removeNote: (id: string) => void;
 
-  isPending: boolean;
+  isDeletingId: string | null;
 }
 
-const NoteList = ({ notes, removeNote, isPending }: NoteListProps) => {
+// Приймаємо isDeletingId замість isPending
+const NoteList = ({ notes, removeNote, isDeletingId }: NoteListProps) => {
   if (!notes || notes.length === 0) {
     return (
       <div className={css.emptyState}>
@@ -25,10 +26,14 @@ const NoteList = ({ notes, removeNote, isPending }: NoteListProps) => {
   return (
     <ul className={css.list}>
       {notes.map(note => {
+        // Визначаємо, чи видаляється саме ця нотатка
+        const isPending = isDeletingId === note.id;
+
         return (
           <li key={note.id} className={css.listItem}>
             <h2 className={css.title}>{note.title}</h2>
-            <p className={css.content}>{note.content || 'No content'}</p>
+            {}
+            <p className={css.content}>{note.content ?? 'No content'}</p>
             <div className={css.footer}>
               <span className={css.tag}>{note.tag}</span>
 
