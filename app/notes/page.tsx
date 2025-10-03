@@ -1,24 +1,28 @@
-import { Suspense } from 'react';
-import { QueryClient, dehydrate } from '@tanstack/react-query';
-import { fetchNotes } from '@/lib/api';
-import NotesClient from './Notes.client';
-import type { FetchNotesResponse } from '@/lib/api';
+'use client';
 
-// Серверний компонент сторінки
-export default async function NotesPage() {
+import { Suspense } from 'react';
+import {
+  QueryClient,
+  QueryClientProvider,
+  hydrate,
+  DehydratedState,
+} from '@tanstack/react-query';
+import NotesClient from './Notes.client';
+
+interface NotesPageProps {
+  dehydratedState: DehydratedState;
+}
+
+export default function NotesPageClient({ dehydratedState }: NotesPageProps) {
   const queryClient = new QueryClient();
 
-  // Попереднє завантаження нотаток на сервері
-  await queryClient.prefetchQuery<FetchNotesResponse>({
-    queryKey: ['notes'],
-    queryFn: fetchNotes,
-  });
-
-  const dehydratedState = dehydrate(queryClient);
+  hydrate(queryClient, dehydratedState);
 
   return (
-    <Suspense fallback={<p>Loading notes…</p>}>
-      <NotesClient dehydratedState={dehydratedState} />
-    </Suspense>
+    <QueryClientProvider client={queryClient}>
+      <Suspense fallback={<p>Loading notes…</p>}>
+        <NotesClient />
+      </Suspense>
+    </QueryClientProvider>
   );
 }
