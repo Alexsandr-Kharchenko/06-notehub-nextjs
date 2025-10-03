@@ -1,53 +1,55 @@
 'use client';
 
-import { UseMutateFunction } from '@tanstack/react-query';
 import Link from 'next/link';
 import type { Note } from '@/types/note';
-import styles from './NoteList.module.css';
+import css from './NoteList.module.css';
 
 interface NoteListProps {
   notes: Note[];
-  removeNote: UseMutateFunction<Note, Error, string, unknown>;
-  isPending?: boolean;
+
+  removeNote: (id: string) => void;
+
+  isPending: boolean;
 }
 
-export default function NoteList({
-  notes,
-  removeNote,
-  isPending,
-}: NoteListProps) {
-  if (!notes || notes.length === 0)
-    return <p className={styles.empty}>No notes yet</p>;
+const NoteList = ({ notes, removeNote, isPending }: NoteListProps) => {
+  if (!notes || notes.length === 0) {
+    return (
+      <div className={css.emptyState}>
+        <h3>No notes found</h3>
+        <p>Create your first note to get started!</p>
+      </div>
+    );
+  }
 
   return (
-    <ul className={styles.list}>
-      {notes.map(note => (
-        <li key={note.id} className={styles.listItem}>
-          <h2 className={styles.title}>{note.title}</h2>
-          <p className={styles.content}>{note.content || 'No content'}</p>
+    <ul className={css.list}>
+      {notes.map(note => {
+        return (
+          <li key={note.id} className={css.listItem}>
+            <h2 className={css.title}>{note.title}</h2>
+            <p className={css.content}>{note.content || 'No content'}</p>
+            <div className={css.footer}>
+              <span className={css.tag}>{note.tag}</span>
 
-          <div className={styles.footer}>
-            {note.tag && <span className={styles.tag}>{note.tag}</span>}
-            <span className={styles.date}>
-              {note.createdAt
-                ? new Date(note.createdAt).toLocaleDateString()
-                : ''}
-            </span>
+              <Link href={`/notes/${note.id}`} className={css.link}>
+                View details
+              </Link>
 
-            <Link href={`/notes/${note.id}`} className={styles.link}>
-              View
-            </Link>
-
-            <button
-              className={styles.button}
-              onClick={() => removeNote(note.id)}
-              disabled={isPending}
-            >
-              {isPending ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
-        </li>
-      ))}
+              <button
+                className={css.button}
+                onClick={() => removeNote(note.id)}
+                disabled={isPending}
+                aria-label={`Delete note titled ${note.title}`}
+              >
+                {isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
-}
+};
+
+export default NoteList;

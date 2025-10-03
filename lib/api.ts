@@ -1,34 +1,49 @@
 import axios from 'axios';
 import type { Note } from '@/types/note';
 
+// Базовий URL API
 const BASE_URL = 'https://notehub-public.goit.study/api';
+const NOTEHUB_TOKEN = process.env.NEXT_PUBLIC_NOTEHUB_TOKEN;
+
+if (!NOTEHUB_TOKEN) throw new Error('Authorization token required');
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
-    Authorization: `Bearer ${process.env.NEXT_PUBLIC_NOTEHUB_TOKEN}`,
+    Authorization: `Bearer ${NOTEHUB_TOKEN}`,
     'Content-Type': 'application/json;charset=utf-8',
   },
 });
 
-// Типи для створення та видалення нотатки
-export type DeleteNote = Note;
-
+// Типи для CRUD
 export interface CreateNote {
   title: string;
   content?: string;
   tag: Note['tag'];
 }
 
-// Тип для відповіді при отриманні нотаток
+export interface FetchNotesParams {
+  search?: string;
+  page?: number;
+  perPage?: number;
+}
+
 export interface FetchNotesResponse {
   notes: Note[];
   totalPages: number;
 }
 
-// Отримати всі нотатки з інформацією про загальну кількість сторінок
-export const fetchNotes = async (): Promise<FetchNotesResponse> => {
-  const { data } = await api.get<FetchNotesResponse>('/notes');
+// --- Функції API ---
+
+// Отримати нотатки з серверною пагінацією та пошуком
+export const fetchNotes = async ({
+  search = '',
+  page = 1,
+  perPage = 12,
+}: FetchNotesParams = {}): Promise<FetchNotesResponse> => {
+  const { data } = await api.get<FetchNotesResponse>('/notes', {
+    params: { search, page, perPage },
+  });
   return data;
 };
 
