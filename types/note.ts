@@ -8,9 +8,3 @@ export interface Note {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface NoteListProps {
-  notes: Note[];
-  removeNote?: (id: string) => void; // зробив optional
-  isPending?: boolean;
-}

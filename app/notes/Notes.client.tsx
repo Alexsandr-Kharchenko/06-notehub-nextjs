@@ -16,7 +16,6 @@ export default function NotesClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // Доданий стан для відстеження ID нотатки, що видаляється
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -29,64 +28,71 @@ export default function NotesClient() {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  // Створення чистого об'єкта параметрів для queryKey та queryFn
   const queryParams = {
     page: currentPage,
     perPage: 12,
-    ...(searchQuery && { search: searchQuery }), // Додаємо search лише якщо він не порожній
+    ...(searchQuery && { search: searchQuery }),
   };
 
-  // Запит нотаток з серверу
-  const { data, isLoading, isError } = useQuery<FetchNotesResponse, Error>({
-    // queryKey тепер містить об'єкт параметрів
+  const { data, isLoading, isError, isFetching } = useQuery<
+    FetchNotesResponse,
+    Error
+  >({
     queryKey: ['notes', queryParams],
-    // queryFn використовує чисту функцію, передаючи їй об'єкт параметрів
     queryFn: () => fetchNotes(queryParams),
     refetchOnWindowFocus: false,
+    placeholderData: previousData => previousData,
   });
 
   const totalPages = data?.totalPages ?? 0;
   const notes = data?.notes ?? [];
 
+  // Хук для видалення нотатки
   const deleteMutation = useMutation<void, Error, string>({
+    // !!! ВИПРАВЛЕННЯ 1: Обгортаємо мутацію, щоб явно повернути Promise<void> !!!
     mutationFn: async (id: string) => {
+      // Чекаємо завершення виклику API
       await deleteNote(id);
+      // Явно не повертаємо значення, щоб відповідати типу <void, ...>
     },
+
     onMutate: async (id: string) => {
-      // 1. Встановлюємо ID нотатки, що видаляється
       setDeletingId(id);
     },
+
+    // !!! ВИПРАВЛЕННЯ 2: Ігноруємо невикористані параметри в onSuccess, використовуючи лише логіку замикання !!!
     onSuccess: () => {
       toast.success('Note deleted');
-      // 2. Очищуємо ID
-      setDeletingId(null);
 
-      // 3. Оптимізована валідація кешу:
-      // Валідуємо лише базовий ключ 'notes'.
-      queryClient.invalidateQueries({
-        queryKey: ['notes'],
-      });
-
-      // 4. Логіка для переходу на попередню сторінку, якщо поточна стала порожньою
       if (notes.length === 1 && currentPage > 1) {
         setCurrentPage(prev => prev - 1);
       }
+
+      queryClient.invalidateQueries({
+        queryKey: ['notes'],
+      });
     },
-    onError: () => {
-      toast.error('Failed to delete note');
-      setDeletingId(null); // Очищуємо ID навіть при помилці
+
+    onError: error => {
+      toast.error(`Failed to delete note: ${error.message}`);
+    },
+    onSettled: () => {
+      setDeletingId(null);
     },
   });
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
+  const handleRemoveNote = (id: string) => {
+    deleteMutation.mutate(id);
+  };
+
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
         <SearchBox value={searchInput} onChange={setSearchInput} />
 
-        {/* Показуємо пагінацію лише якщо сторінок більше однієї */}
         {totalPages > 1 && (
           <Pagination
             currentPage={currentPage}
@@ -100,23 +106,22 @@ export default function NotesClient() {
         </button>
       </header>
 
-      {/* Оновлені умови відображення */}
       {isLoading && <p>Loading, please wait...</p>}
-      {isError && <p>Something went wrong.</p>}
-      {/* Показуємо "No notes found" лише коли завантаження завершено і помилок немає */}
-      {!isLoading && !isError && notes.length === 0 && <p>No notes found</p>}
+      {isFetching && !isLoading && (
+        <p className={css.fetchingIndicator}>Updating list...</p>
+      )}
+      {isError && <p>Something went wrong: Failed to load notes.</p>}
 
-      {/* NoteList рендериться лише якщо є нотатки */}
-      {notes.length > 0 && (
+      {!isLoading && !isError && notes.length > 0 ? (
         <NoteList
           notes={notes}
-          removeNote={deleteMutation.mutate}
-          // Передаємо ID нотатки, що видаляється, замість isPending
+          removeNote={handleRemoveNote}
           isDeletingId={deletingId}
         />
+      ) : (
+        !isLoading && !isError && notes.length === 0 && <p>No notes found</p>
       )}
 
-      {/* Модальне вікно створення нотатки */}
       {isModalOpen && (
         <Modal onClose={closeModal}>
           <NoteForm onCancel={closeModal} />
